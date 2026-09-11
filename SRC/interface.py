@@ -2,6 +2,7 @@ from pathlib import Path
 from datetime import date
 import subprocess
 import sys
+import os
 
 import pandas as pd
 import streamlit as st
@@ -9,6 +10,15 @@ import streamlit as st
 from intake import generate_next_step
 from analysis import run_analysis
 
+# =========================================================
+# GEMINI API KEY
+# =========================================================
+
+if "GEMINI_API_KEY" not in os.environ:
+    try:
+        os.environ["GEMINI_API_KEY"] = st.secrets["GEMINI_API_KEY"]
+    except Exception:
+        pass
 
 # =========================================================
 # PROJECT PATHS
@@ -1168,10 +1178,16 @@ with st.sidebar:
             "Connect Data"
         )
 
+        # Portable default data folder.
+        # Works locally and on Streamlit Community Cloud.
+        default_data_folder = PROJECT_ROOT / "data" / "RAW"
+
         folder_input = st.text_input(
             "Data folder",
-            value=st.session_state.connected_folder,
-            placeholder=r"G:\My Drive\AI AGENT\data\raw",
+            value=(
+                st.session_state.connected_folder
+                or str(default_data_folder)
+            ),
         )
 
         if folder_input:
@@ -1301,7 +1317,6 @@ with st.sidebar:
                             st.code(
                                 str(error)
                             )
-
     # -----------------------------------------------------
     # CONNECTED
     # -----------------------------------------------------
