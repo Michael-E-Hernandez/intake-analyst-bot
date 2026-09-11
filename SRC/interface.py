@@ -3,6 +3,7 @@ from datetime import date
 import subprocess
 import sys
 import os
+import tempfile
 
 import pandas as pd
 import streamlit as st
@@ -1157,7 +1158,6 @@ def render_visualization(viz):
             use_container_width=True,
         )
 
-
 # =========================================================
 # SIDEBAR
 # =========================================================
@@ -1178,26 +1178,73 @@ with st.sidebar:
             "Connect Data"
         )
 
-        # Portable default data folder.
-        # Works locally and on Streamlit Community Cloud.
-        default_data_folder = PROJECT_ROOT / "data" / "RAW"
-
-        folder_input = st.text_input(
-            "Data folder",
-            value=(
-                st.session_state.connected_folder
-                or str(default_data_folder)
-            ),
+        data_source = st.radio(
+            "Choose a data source",
+            [
+                "Use Demo Dataset",
+                "Upload Your Own Data",
+            ],
         )
 
-        if folder_input:
+        selected_folder = None
 
-            selected_folder = Path(
-                folder_input
-                .strip()
-                .strip('"')
-                .strip("'")
+        if data_source == "Use Demo Dataset":
+
+            selected_folder = PROJECT_ROOT / "data" / "RAW"
+
+        else:
+
+            uploaded_files = st.file_uploader(
+                "Upload one or more CSV files",
+                type=["csv"],
+                accept_multiple_files=True,
             )
+
+            if uploaded_files:
+
+                if (
+                    "upload_temp_dir"
+                    not in st.session_state
+                    or not st.session_state.upload_temp_dir
+                ):
+
+                    st.session_state.upload_temp_dir = tempfile.mkdtemp(
+                        prefix="intake_analyst_"
+                    )
+
+                selected_folder = Path(
+                    st.session_state.upload_temp_dir
+                )
+
+                # Clear old uploaded CSV files.
+                for existing_file in selected_folder.glob("*.csv"):
+
+                    try:
+
+                        existing_file.unlink()
+
+                    except Exception:
+
+                        pass
+
+                # Save current uploaded CSV files.
+                for uploaded_file in uploaded_files:
+
+                    file_path = (
+                        selected_folder
+                        / Path(uploaded_file.name).name
+                    )
+
+                    with open(
+                        file_path,
+                        "wb",
+                    ) as file:
+
+                        file.write(
+                            uploaded_file.getbuffer()
+                        )
+
+        if selected_folder is not None:
 
             if not selected_folder.exists():
 
@@ -1317,6 +1364,7 @@ with st.sidebar:
                             st.code(
                                 str(error)
                             )
+
     # -----------------------------------------------------
     # CONNECTED
     # -----------------------------------------------------
@@ -1416,6 +1464,7 @@ with st.sidebar:
             reset_environment()
 
             st.rerun()
+
 
 
 # =========================================================
