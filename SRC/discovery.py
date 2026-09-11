@@ -50,25 +50,31 @@ def get_arguments():
 
 def create_gemini_client():
 
-    if not ENV_FILE.exists():
-        raise FileNotFoundError(
-            f".env file was not found:\n{ENV_FILE}"
+    # Local development:
+    # Load .env when it exists.
+    #
+    # Streamlit Cloud:
+    # GEMINI_API_KEY is supplied through
+    # the process environment.
+
+    if ENV_FILE.exists():
+
+        load_dotenv(
+            ENV_FILE
         )
 
-    load_dotenv(ENV_FILE)
-
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv(
+        "GEMINI_API_KEY"
+    )
 
     if not api_key:
         raise RuntimeError(
-            "GEMINI_API_KEY was not found in the .env file."
+            "GEMINI_API_KEY was not found in the environment."
         )
 
     return genai.Client(
         api_key=api_key
     )
-
-
 # =========================================================
 # LOAD DATA INVENTORY
 # =========================================================
